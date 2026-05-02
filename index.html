@@ -379,6 +379,34 @@
   }
 
 </style>
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAYDoJIUdW8dTNOoc7_K1LuV80ZKXu3jSM",
+      authDomain: "restaurantwheeldata.firebaseapp.com",
+      databaseURL: "https://restaurantwheeldata-default-rtdb.firebaseio.com",
+      projectId: "restaurantwheeldata",
+      storageBucket: "restaurantwheeldata.firebasestorage.app",
+      messagingSenderId: "52964143438",
+      appId: "1:52964143438:web:01a3832b8719486a5fee1f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Expose to global scope so the rest of the app can use it
+    window._fbDb = db;
+    window._fbRef = ref;
+    window._fbSet = set;
+    window._fbOnValue = onValue;
+    window._fbReady = true;
+
+    // Notify app that Firebase is ready
+    window.dispatchEvent(new Event('firebase-ready'));
+  </script>
 </head>
 <body>
 <div class="app">
@@ -595,20 +623,68 @@ function getOrCreateLocalRoom() {
 
 async function loadWheel() {
   setSaveBadge('loading');
+
+  // Load from localStorage immediately for instant display
   try {
     const local = localStorage.getItem('wheel_items_' + roomId);
-    if (local) { wheelItems = JSON.parse(local); setSaveBadge('saved'); }
-    else { setSaveBadge('empty'); }
-  } catch(e) { setSaveBadge('empty'); }
+    if (local) { wheelItems = JSON.parse(local); setSaveBadge('saved'); renderAll(); }
+  } catch(e) {}
+
+  // Then connect Firebase live listener
+  const connectFirebase = () => {
+    if (!window._fbReady) return;
+    try {
+      const r = window._fbRef(window._fbDb, 'rooms/' + roomId);
+      window._fbOnValue(r, (snapshot) => {
+        const data = snapshot.val();
+        if (!data || !data.items) {
+          if (!wheelItems.length) setSaveBadge('empty');
+          return;
+        }
+        const remote = data.items;
+        // Only update if different from current state (avoid loop)
+        if (JSON.stringify(remote) !== JSON.stringify(wheelItems)) {
+          wheelItems = remote;
+          localStorage.setItem('wheel_items_' + roomId, JSON.stringify(wheelItems));
+          renderAll();
+          if (document.visibilityState !== 'hidden') showToast('🔄 Wheel synced!');
+        }
+        setSaveBadge('saved');
+      });
+    } catch(e) { console.error('Firebase listen error:', e); }
+  };
+
+  if (window._fbReady) {
+    connectFirebase();
+  } else {
+    window.addEventListener('firebase-ready', connectFirebase, { once: true });
+    // Fallback if Firebase never loads
+    setTimeout(() => { if (!window._fbReady) setSaveBadge('saved'); }, 3000);
+  }
+
   renderAll();
 }
 
 async function persistWheel() {
   setSaveBadge('saving');
+  // Always save to localStorage as instant fallback
   localStorage.setItem('wheel_items_' + roomId, JSON.stringify(wheelItems));
-  setSaveBadge('saved');
-  showToast('💾 Wheel saved!', 'saved');
-  try { if (window._broadcastChannel) window._broadcastChannel.postMessage(wheelItems); } catch(e) {}
+  // Save to Firebase for cross-device sync
+  if (window._fbReady) {
+    try {
+      const r = window._fbRef(window._fbDb, 'rooms/' + roomId);
+      await window._fbSet(r, { items: wheelItems, updatedAt: Date.now() });
+      setSaveBadge('saved');
+      showToast('💾 Wheel saved!', 'saved');
+    } catch(e) {
+      console.error('Firebase save error:', e);
+      setSaveBadge('saved');
+      showToast('💾 Saved locally', 'saved');
+    }
+  } else {
+    setSaveBadge('saved');
+    showToast('💾 Wheel saved!', 'saved');
+  }
 }
 
 function setSaveBadge(s) {
@@ -1247,20 +1323,7 @@ window.addEventListener('load', () => {
 });
 initRoom();
 
-// Live sync via localStorage (BroadcastChannel for same-device tabs)
-try {
-  const bc = new BroadcastChannel('spintoeat_' + roomId);
-  bc.onmessage = e => {
-    const remote = e.data;
-    if (JSON.stringify(remote) !== JSON.stringify(wheelItems)) {
-      wheelItems = remote; renderAll();
-      showToast('🔄 Wheel updated by a teammate!');
-    }
-  };
-  // Patch persistWheel to broadcast
-  const _orig = persistWheel;
-  window._broadcastChannel = bc;
-} catch(e) {}
+// Firebase handles cross-device sync (see loadWheel)
 </script>
 </body>
 </html>
