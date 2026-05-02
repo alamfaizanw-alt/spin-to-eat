@@ -235,7 +235,12 @@
   }
   .modal-overlay.show .modal { transform: scale(1); }
   .modal-emoji { font-size: 3.5rem; display: block; margin-bottom: .6rem; }
-  .modal h2 { font-family: 'Syne',sans-serif; font-weight: 800; font-size: 1.9rem; color: var(--accent); line-height: 1.1; word-break: break-word; overflow-wrap: break-word; hyphens: auto; }
+  .modal h2 {
+    font-family: 'Syne',sans-serif; font-weight: 800; color: var(--accent);
+    line-height: 1.15; word-break: break-word; overflow-wrap: break-word;
+    hyphens: auto; width: 100%; text-align: center;
+    font-size: clamp(1.1rem, 5vw, 1.9rem);
+  }
   .modal-address {
     display: inline-flex; align-items: center; gap: .3rem; margin: .65rem auto .25rem;
     background: rgba(61,169,252,.1); border: 1px solid rgba(61,169,252,.25);
@@ -377,9 +382,9 @@
     #editView .layout { display: flex; flex-direction: column; }
 
     /* Modal */
-    .modal { padding: 1.5rem 1rem; border-radius: 16px; }
+    .modal { padding: 1.5rem 1.25rem; border-radius: 16px; width: 92%; max-width: 360px; }
     .modal-emoji { font-size: 2.5rem; }
-    .modal h2 { font-size: 1.2rem; word-break: break-word; }
+    .modal h2 { font-size: clamp(1rem, 4.5vw, 1.3rem); }
     .modal-address { font-size: .72rem; padding: .25rem .7rem; }
     .modal-sub { font-size: .78rem; margin-bottom: 1rem; }
     .modal-actions { flex-direction: column; gap: .45rem; }
@@ -1520,8 +1525,8 @@ function showResult(item) {
   document.getElementById('resultEmoji').textContent = item.emoji||'🍽️';
   const nameEl = document.getElementById('resultName');
   nameEl.textContent = item.name;
-  // Shrink font for long names
-  nameEl.style.fontSize = item.name.length > 20 ? '1.4rem' : item.name.length > 14 ? '1.65rem' : '1.9rem';
+  // Let clamp handle it — just nudge very long names smaller
+  nameEl.style.fontSize = item.name.length > 25 ? '1.1rem' : item.name.length > 18 ? '1.35rem' : '';
   const addrBox = document.getElementById('resultAddressBox');
   const mapsLink = document.getElementById('mapsLink');
   if (item.address) {
