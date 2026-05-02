@@ -716,18 +716,28 @@ function genCode() {
 async function initRoom() {
   const params = new URLSearchParams(window.location.search);
   const roomParam = params.get('room');
-  if (roomParam) {
-    // Joined via shared link — go straight into that room
+
+  // Only auto-join a room if this session hasn't already left it
+  // (prevents re-joining after hitting ← Home)
+  const leftRoom = sessionStorage.getItem('left_room_' + roomParam);
+
+  if (roomParam && !leftRoom) {
+    // Joined via shared invite link — skip lobby, go straight in
     enterRoom(roomParam, true);
   } else {
-    // No room in URL — show lobby
+    // Show lobby — clean the URL too
+    if (roomParam) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('room');
+      history.replaceState({}, '', url);
+    }
     document.getElementById('lobbyScreen').style.display = 'flex';
     document.getElementById('appScreen').style.display = 'none';
   }
 }
 
 function startSolo() {
-  // Solo mode — use a personal room stored in localStorage, no URL param
+  // Solo mode — reuse saved personal room so wheel persists between sessions
   let id = localStorage.getItem('spintoeat_solo_room');
   if (!id) { id = 'SOLO_' + genCode(); localStorage.setItem('spintoeat_solo_room', id); }
   enterRoom(id, false);
@@ -776,9 +786,12 @@ function convertToRoom() {
 }
 
 function leaveRoom() {
+  // Mark this room as left so we don't auto-rejoin on refresh
+  if (roomId) sessionStorage.setItem('left_room_' + roomId, '1');
   roomId = '';
   wheelItems = [];
   currentAngle = 0;
+  drawWheel();
   // Clear URL param
   const url = new URL(window.location.href);
   url.searchParams.delete('room');
