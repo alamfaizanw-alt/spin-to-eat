@@ -235,7 +235,7 @@
   }
   .modal-overlay.show .modal { transform: scale(1); }
   .modal-emoji { font-size: 3.5rem; display: block; margin-bottom: .6rem; }
-  .modal h2 { font-family: 'Syne',sans-serif; font-weight: 800; font-size: 1.9rem; color: var(--accent); line-height: 1.1; }
+  .modal h2 { font-family: 'Syne',sans-serif; font-weight: 800; font-size: 1.9rem; color: var(--accent); line-height: 1.1; word-break: break-word; overflow-wrap: break-word; hyphens: auto; }
   .modal-address {
     display: inline-flex; align-items: center; gap: .3rem; margin: .65rem auto .25rem;
     background: rgba(61,169,252,.1); border: 1px solid rgba(61,169,252,.25);
@@ -379,7 +379,7 @@
     /* Modal */
     .modal { padding: 1.5rem 1rem; border-radius: 16px; }
     .modal-emoji { font-size: 2.5rem; }
-    .modal h2 { font-size: 1.4rem; }
+    .modal h2 { font-size: 1.2rem; word-break: break-word; }
     .modal-address { font-size: .72rem; padding: .25rem .7rem; }
     .modal-sub { font-size: .78rem; margin-bottom: 1rem; }
     .modal-actions { flex-direction: column; gap: .45rem; }
@@ -685,6 +685,8 @@ async function loadWheel() {
         const data = snapshot.val();
         if (!data || !data.ts || data.ts <= lastSpinTs) return;
         lastSpinTs = data.ts;
+        // Skip if this device triggered the spin
+        if (window._lastLocalSpinTs && data.ts === window._lastLocalSpinTs) return;
         if (!spinning && typeof data.winnerIdx === 'number') {
           remoteSpinTo(data.winnerIdx);
         }
@@ -1291,8 +1293,11 @@ function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function syncSpinResult(winnerIdx) {
   if (!window._fbReady) return;
   try {
+    const ts = Date.now();
+    // Mark this timestamp as already handled locally so we don't re-trigger
+    window._lastLocalSpinTs = ts;
     const r = window._fbRef(window._fbDb, 'rooms/' + roomId + '/spin');
-    window._fbSet(r, { winnerIdx, ts: Date.now() });
+    window._fbSet(r, { winnerIdx, ts });
   } catch(e) { console.error('Spin sync error:', e); }
 }
 
@@ -1361,7 +1366,10 @@ function spinWheel() {
 
 function showResult(item) {
   document.getElementById('resultEmoji').textContent = item.emoji||'🍽️';
-  document.getElementById('resultName').textContent = item.name;
+  const nameEl = document.getElementById('resultName');
+  nameEl.textContent = item.name;
+  // Shrink font for long names
+  nameEl.style.fontSize = item.name.length > 20 ? '1.4rem' : item.name.length > 14 ? '1.65rem' : '1.9rem';
   const addrBox = document.getElementById('resultAddressBox');
   const mapsLink = document.getElementById('mapsLink');
   if (item.address) {
