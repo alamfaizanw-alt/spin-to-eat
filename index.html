@@ -289,93 +289,119 @@
     border-radius: 8px; padding: .4rem .85rem;
   }
   .room-code { font-family: 'Syne',sans-serif; font-weight: 700; font-size: 1rem; color: var(--accent); letter-spacing: .12em; }
-  /* ── TABLET & MOBILE ─────────────────────────────── */
+  /* ── TABLET ──────────────────────────────────────── */
   @media (max-width: 880px) {
     .layout { grid-template-columns: 1fr; }
     .app { padding: 1.25rem 1rem; }
-    header { margin-bottom: 1.25rem; }
-    header h1 { font-size: 2.2rem; }
+    header { margin-bottom: 1rem; }
+    header h1 { font-size: 2rem; }
+    /* On tablet, show wheel ABOVE the list */
+    #spinView .layout { display: flex; flex-direction: column-reverse; }
   }
 
+  /* ── MOBILE ───────────────────────────────────────── */
   @media (max-width: 600px) {
-    header h1 { font-size: 1.75rem; }
-    header p { font-size: .82rem; }
+    .app { padding: .75rem .75rem; }
+    header { margin-bottom: .75rem; }
+    header h1 { font-size: 1.5rem; }
+    header p { font-size: .78rem; margin-top: .15rem; }
 
-    /* Mode toggle full width */
-    .mode-toggle { width: 100%; justify-content: center; }
-    .mode-btn { flex: 1; text-align: center; }
+    /* Share / save bar */
+    div[style*="display:flex;align-items:center;justify-content:center"] { gap: .4rem; margin-bottom: 1rem; }
 
-    /* Share bar wraps nicely */
-    .room-bar { gap: .4rem; padding: .4rem .75rem; font-size: .75rem; }
+    /* Mode toggle */
+    .mode-toggle { width: 100%; }
+    .mode-btn { flex: 1; font-size: .82rem; padding: .38rem .5rem; }
 
-    /* Panel padding tighter */
-    .panel { padding: 1rem; }
-    .panel-title { font-size: .78rem; }
+    /* Wheel — full width, centered, max 85vw */
+    .wheel-area { gap: .75rem; width: 100%; }
+    .wheel-wrapper {
+      width: min(85vw, 320px) !important;
+      height: min(85vw, 320px) !important;
+    }
+    canvas#wheel {
+      width: min(85vw, 320px) !important;
+      height: min(85vw, 320px) !important;
+    }
+    .spin-btn { width: 100%; padding: .85rem 1rem; font-size: .95rem; }
+    .spin-hint { font-size: .72rem; }
 
-    /* Search row — stack on very small */
-    .search-row { flex-wrap: nowrap; gap: .35rem; }
-    .search-row input { font-size: .85rem; padding: .55rem .75rem; }
-    .btn { padding: .55rem .85rem; font-size: .78rem; }
+    /* Spin view — wheel on top, list below */
+    #spinView .layout { display: flex; flex-direction: column; align-items: center; }
+    #spinView .panel { width: 100%; }
 
-    /* Food type chips scroll horizontally */
-    .filter-row { flex-wrap: nowrap; overflow-x: auto; padding-bottom: .35rem; -webkit-overflow-scrolling: touch; }
-    .filter-row::-webkit-scrollbar { height: 2px; }
-    .filter-row::-webkit-scrollbar-thumb { background: var(--border); }
-    .chip { flex-shrink: 0; }
+    /* Panel */
+    .panel { padding: .85rem .85rem; }
+    .panel-title { font-size: .75rem; margin-bottom: .75rem; }
 
-    /* Distance row wraps */
-    .dist-row { flex-wrap: wrap; gap: .45rem; }
-    .dist-label { width: 100%; margin-bottom: .1rem; }
+    /* Buttons */
+    .btn { padding: .5rem .8rem; font-size: .78rem; }
 
-    /* Rating + price filters stack */
-    .filter-meta-row { flex-direction: column; gap: .65rem; }
-    .filter-meta-group { flex-wrap: wrap; }
-    .rating-btns, .price-btns { flex-wrap: wrap; }
+    /* Search */
+    .search-row { gap: .3rem; }
+    .search-row input { font-size: .82rem; padding: .5rem .65rem; }
 
-    /* Wheel smaller on phone */
-    .wheel-wrapper { width: 300px; height: 300px; }
-    canvas#wheel { width: 300px !important; height: 300px !important; }
+    /* Chips — horizontal scroll */
+    .filter-row {
+      flex-wrap: nowrap; overflow-x: auto; padding-bottom: .3rem;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .chip { flex-shrink: 0; font-size: .72rem; padding: .22rem .55rem; }
 
-    /* Spin button full width */
-    .spin-btn { width: 100%; padding: .9rem 1rem; font-size: 1rem; }
+    /* Distance */
+    .dist-row { flex-wrap: wrap; gap: .4rem; padding: .5rem .75rem; }
+    .dist-label { font-size: .72rem; }
+    .dist-row input[type=number] { width: 50px; font-size: .9rem; }
+    .dist-step-btn { width: 26px; height: 26px; font-size: 1rem; }
 
-    /* Wheel area padding */
-    .wheel-area { gap: 1rem; }
+    /* Filters */
+    .filter-meta-row { flex-direction: column; gap: .5rem; padding: .5rem .75rem; }
+    .rating-btn, .price-btn { font-size: .7rem; padding: .2rem .45rem; }
 
-    /* Results list tighter */
-    .place-item { padding: .6rem .5rem; gap: .5rem; }
-    .place-name { font-size: .83rem; }
-    .place-meta { font-size: .7rem; }
-    .place-address { font-size: .68rem; }
+    /* Results */
+    .results { max-height: 220px; }
+    .place-item { padding: .55rem .4rem; gap: .4rem; }
+    .place-emoji { font-size: 1.1rem; width: 22px; }
+    .place-name { font-size: .8rem; }
+    .place-meta { font-size: .68rem; }
+    .place-address { font-size: .65rem; }
+    .place-add-btn { font-size: .68rem; padding: .22rem .45rem; }
 
-    /* Wheel list tighter */
-    .wl-name { font-size: .82rem; }
-    .wl-addr { font-size: .68rem; }
+    /* Wheel list */
+    .wheel-list li { padding: .45rem .5rem; }
+    .wl-name { font-size: .8rem; }
+    .wl-addr { font-size: .65rem; }
 
-    /* Modal */
-    .modal { padding: 1.75rem 1.25rem; }
-    .modal h2 { font-size: 1.5rem; }
-    .modal-emoji { font-size: 2.8rem; }
-    .modal-actions { flex-direction: column; gap: .5rem; }
-    .modal-actions .btn, .modal-actions .maps-btn { width: 100%; justify-content: center; text-align: center; }
-
-    /* Edit view list panel comes AFTER search on mobile — reorder */
+    /* Edit layout */
     #editView .layout { display: flex; flex-direction: column; }
 
-    /* Share panel */
-    .share-panel-inner { padding: 1rem; }
-    .share-actions { flex-direction: column; align-items: stretch; }
-    .share-actions .btn { text-align: center; }
-    .share-code-box { justify-content: center; }
+    /* Modal */
+    .modal { padding: 1.5rem 1rem; border-radius: 16px; }
+    .modal-emoji { font-size: 2.5rem; }
+    .modal h2 { font-size: 1.4rem; }
+    .modal-address { font-size: .72rem; padding: .25rem .7rem; }
+    .modal-sub { font-size: .78rem; margin-bottom: 1rem; }
+    .modal-actions { flex-direction: column; gap: .45rem; }
+    .modal-actions .btn,
+    .modal-actions .maps-btn { width: 100%; justify-content: center; text-align: center; }
 
-    /* Toast bottom center on mobile */
-    .toast { left: 1rem; right: 1rem; bottom: 1rem; max-width: none; text-align: center; }
+    /* Share panel */
+    .share-panel-inner { padding: .85rem 1rem; }
+    .share-panel-title { font-size: .9rem; }
+    .share-panel-desc { font-size: .76rem; }
+    .share-actions { flex-direction: column; align-items: stretch; gap: .5rem; }
+    .share-actions .btn { text-align: center; width: 100%; }
+    .share-code-box { align-items: center; }
+
+    /* Toast */
+    .toast { left: .75rem; right: .75rem; bottom: .75rem; max-width: none; text-align: center; font-size: .78rem; }
   }
 
-  @media (max-width: 380px) {
-    .wheel-wrapper { width: 260px; height: 260px; }
-    canvas#wheel { width: 260px !important; height: 260px !important; }
-    header h1 { font-size: 1.5rem; }
+  @media (max-width: 360px) {
+    header h1 { font-size: 1.3rem; }
+    .wheel-wrapper { width: 78vw !important; height: 78vw !important; }
+    canvas#wheel { width: 78vw !important; height: 78vw !important; }
   }
 
 </style>
