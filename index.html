@@ -628,41 +628,45 @@ async function loadWheel() {
   try {
     const local = localStorage.getItem('wheel_items_' + roomId);
     if (local) { wheelItems = JSON.parse(local); setSaveBadge('saved'); renderAll(); }
-  } catch(e) {}
+    else { renderAll(); }
+  } catch(e) { renderAll(); }
 
-  // Then connect Firebase live listener
+  // Connect Firebase — poll until ready (handles module load timing on all devices)
+  let fbConnected = false;
+
   const connectFirebase = () => {
-    if (!window._fbReady) return;
+    if (fbConnected || !window._fbReady) return;
+    fbConnected = true;
     try {
       const r = window._fbRef(window._fbDb, 'rooms/' + roomId);
       window._fbOnValue(r, (snapshot) => {
         const data = snapshot.val();
         if (!data || !data.items) {
-          if (!wheelItems.length) setSaveBadge('empty');
+          setSaveBadge(wheelItems.length ? 'saved' : 'empty');
           return;
         }
         const remote = data.items;
-        // Only update if different from current state (avoid loop)
         if (JSON.stringify(remote) !== JSON.stringify(wheelItems)) {
           wheelItems = remote;
           localStorage.setItem('wheel_items_' + roomId, JSON.stringify(wheelItems));
           renderAll();
-          if (document.visibilityState !== 'hidden') showToast('🔄 Wheel synced!');
+          showToast('🔄 Wheel synced!');
         }
         setSaveBadge('saved');
       });
     } catch(e) { console.error('Firebase listen error:', e); }
   };
 
-  if (window._fbReady) {
+  // Try immediately, then poll every 200ms for up to 10s
+  connectFirebase();
+  const pollInterval = setInterval(() => {
+    if (fbConnected) { clearInterval(pollInterval); return; }
     connectFirebase();
-  } else {
-    window.addEventListener('firebase-ready', connectFirebase, { once: true });
-    // Fallback if Firebase never loads
-    setTimeout(() => { if (!window._fbReady) setSaveBadge('saved'); }, 3000);
-  }
-
-  renderAll();
+  }, 200);
+  setTimeout(() => {
+    clearInterval(pollInterval);
+    if (!fbConnected) { console.warn('Firebase did not connect'); setSaveBadge('saved'); }
+  }, 10000);
 }
 
 async function persistWheel() {
