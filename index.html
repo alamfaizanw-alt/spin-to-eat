@@ -664,21 +664,30 @@ async function loadWheel() {
     if (fbConnected || !window._fbReady) return;
     fbConnected = true;
     try {
-      const r = window._fbRef(window._fbDb, 'rooms/' + roomId);
-      window._fbOnValue(r, (snapshot) => {
-        const data = snapshot.val();
-        if (!data || !data.items) {
-          setSaveBadge(wheelItems.length ? 'saved' : 'empty');
-          return;
-        }
-        const remote = data.items;
+      // Watch wheel items
+      const wheelRef = window._fbRef(window._fbDb, 'rooms/' + roomId + '/items');
+      window._fbOnValue(wheelRef, (snapshot) => {
+        const remote = snapshot.val();
+        if (!remote) { setSaveBadge(wheelItems.length ? 'saved' : 'empty'); return; }
         if (JSON.stringify(remote) !== JSON.stringify(wheelItems)) {
           wheelItems = remote;
           localStorage.setItem('wheel_items_' + roomId, JSON.stringify(wheelItems));
           renderAll();
-          showToast('🔄 Wheel synced!');
+          showToast('🔄 Wheel updated!');
         }
         setSaveBadge('saved');
+      });
+
+      // Watch spin results — animate on all other devices
+      let lastSpinTs = 0;
+      const spinRef = window._fbRef(window._fbDb, 'rooms/' + roomId + '/spin');
+      window._fbOnValue(spinRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data || !data.ts || data.ts <= lastSpinTs) return;
+        lastSpinTs = data.ts;
+        if (!spinning && typeof data.winnerIdx === 'number') {
+          remoteSpinTo(data.winnerIdx);
+        }
       });
     } catch(e) { console.error('Firebase listen error:', e); }
   };
@@ -702,8 +711,8 @@ async function persistWheel() {
   // Save to Firebase for cross-device sync
   if (window._fbReady) {
     try {
-      const r = window._fbRef(window._fbDb, 'rooms/' + roomId);
-      await window._fbSet(r, { items: wheelItems, updatedAt: Date.now() });
+      const r = window._fbRef(window._fbDb, 'rooms/' + roomId + '/items');
+      await window._fbSet(r, wheelItems);
       setSaveBadge('saved');
       showToast('💾 Wheel saved!', 'saved');
     } catch(e) {
@@ -1279,6 +1288,43 @@ function truncate(s,n) { return s.length>n ? s.slice(0,n-1)+'…' : s; }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── SPIN ─────────────────────────────────────────────
+function syncSpinResult(winnerIdx) {
+  if (!window._fbReady) return;
+  try {
+    const r = window._fbRef(window._fbDb, 'rooms/' + roomId + '/spin');
+    window._fbSet(r, { winnerIdx, ts: Date.now() });
+  } catch(e) { console.error('Spin sync error:', e); }
+}
+
+function remoteSpinTo(winnerIdx) {
+  if (spinning || wheelItems.length < 2 || winnerIdx >= wheelItems.length) return;
+  spinning = true;
+  document.getElementById('spinBtn').disabled = true;
+  closeModal();
+  const n = wheelItems.length;
+  const sliceAngle = 2*Math.PI/n;
+  const extraSpins = 6*2*Math.PI;
+  const targetOffset = -(winnerIdx*sliceAngle+sliceAngle/2)-Math.PI/2;
+  const totalRotation = extraSpins+(((targetOffset-currentAngle)%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+  const startAngle = currentAngle;
+  const duration = 4200;
+  const startTime = performance.now();
+  function easeOut(t) { return 1-Math.pow(1-t,4.2); }
+  function frame(now) {
+    const t = Math.min((now-startTime)/duration,1);
+    currentAngle = startAngle+totalRotation*easeOut(t);
+    drawWheel();
+    if (t<1) { requestAnimationFrame(frame); return; }
+    currentAngle = (startAngle+totalRotation)%(2*Math.PI);
+    spinning = false;
+    document.getElementById('spinBtn').disabled = false;
+    drawWheel(winnerIdx);
+    showResult(wheelItems[winnerIdx]);
+    showToast('🎡 Someone spun the wheel!');
+  }
+  requestAnimationFrame(frame);
+}
+
 function spinWheel() {
   if (spinning || wheelItems.length < 2) return;
   spinning = true;
@@ -1308,6 +1354,7 @@ function spinWheel() {
     const winner = Math.floor(norm/sliceAngle)%n;
     drawWheel(winner);
     showResult(wheelItems[winner]);
+    syncSpinResult(winner);
   }
   requestAnimationFrame(frame);
 }
